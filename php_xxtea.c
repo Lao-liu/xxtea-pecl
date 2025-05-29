@@ -80,6 +80,10 @@
 typedef int length_t;
 #define __RETURN_STRINGL(s, l) RETURN_STRINGL(s, l, 0)
 #define __add_assoc_string(arg, key, str) add_assoc_string(arg, key, str, 1)
+#elif PHP_MAJOR_VERSION < 8
+typedef size_t length_t;
+#define __RETURN_STRINGL(s, l) RETVAL_STRINGL(s, l); efree(s); return;
+#define __add_assoc_string(arg, key, str) add_assoc_string(arg, key, str)
 #else
 typedef size_t length_t;
 #define __RETURN_STRINGL(s, l) RETVAL_STRINGL(s, l); efree(s); return;
@@ -228,17 +232,17 @@ static uint8_t * xxtea_ubyte_decrypt(const uint8_t * data, size_t len, const uin
     return out;
 }
 
-ZEND_BEGIN_ARG_INFO_EX(xxtea_encrypt_arginfo, 0, 0, 2)
-    ZEND_ARG_INFO(0, data)
-    ZEND_ARG_INFO(0, key)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(xxtea_encrypt_arginfo, 0, 2, IS_STRING, 1)
+    ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, key, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(xxtea_decrypt_arginfo, 0, 0, 2)
-    ZEND_ARG_INFO(0, data)
-    ZEND_ARG_INFO(0, key)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(xxtea_decrypt_arginfo, 0, 2, IS_STRING, 1)
+    ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, key, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(xxtea_info_arginfo, 0, 0, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(xxtea_info_arginfo, 0, 0, IS_ARRAY, 0)
 ZEND_END_ARG_INFO()
 
 #ifndef ZEND_FE_END
@@ -281,11 +285,7 @@ ZEND_FUNCTION(xxtea_encrypt) {
     size_t i, ret_length;
     uint8_t fixed_key[16];
 
-#ifdef TSRMLS_CC
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &data, &data_len, &key, &key_len) == FAILURE) {
-#else
     if (zend_parse_parameters(ZEND_NUM_ARGS(), "ss", &data, &data_len, &key, &key_len) == FAILURE) {
-#endif
         return;
     }
     if (data_len == 0) {
@@ -318,11 +318,7 @@ ZEND_FUNCTION(xxtea_decrypt) {
     size_t i, ret_length;
     uint8_t fixed_key[16];
 
-#ifdef TSRMLS_CC
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &data, &data_len, &key, &key_len) == FAILURE) {
-#else
     if (zend_parse_parameters(ZEND_NUM_ARGS(), "ss", &data, &data_len, &key, &key_len) == FAILURE) {
-#endif
         return;
     }
     if (data_len == 0) {
@@ -354,11 +350,7 @@ static zend_function_entry xxtea_method[] = {
 ZEND_MINIT_FUNCTION(xxtea) {
     zend_class_entry ce;
     INIT_CLASS_ENTRY(ce, "XXTEA", xxtea_method);
-#ifdef TSRMLS_CC
-    xxtea_ce = zend_register_internal_class(&ce TSRMLS_CC);
-#else
     xxtea_ce = zend_register_internal_class(&ce);
-#endif
     return SUCCESS;
 }
 
